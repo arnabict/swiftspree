@@ -18,7 +18,7 @@ export function ProductForm() {
         <Input type="text" id="name" name="name" required></Input>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="name">Price In Cents</Label>
+        <Label htmlFor="priceInCents">Price In Cents</Label>
         <Input
           type="number"
           id="priceInCents"
