@@ -10,6 +10,7 @@ An e-commerce site which involves managing products and users to handle payments
 - **Prisma**
 - **Database** – PostgreSQL
 - **Authentication** - Clerk
+- **Payments** - Stripe
 
 ## Features
 
