@@ -1,32 +1,38 @@
-import { ProductCard } from "@/components/ProductCard";
+import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { db } from "@/db/db";
 import { Product } from "@/generated/prisma";
+import { cache } from "@/lib/cache";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
-function getMostPopularProducts() {
-  return db.product.findMany({
-    where: { isAvailableForPurchase: true },
-    orderBy: { orders: { _count: "desc" } },
-    take: 6,
-  });
-}
+const getMostPopularProducts = cache(
+  () => {
+    return db.product.findMany({
+      where: { isAvailableForPurchase: true },
+      orderBy: { orders: { _count: "desc" } },
+      take: 6,
+    });
+  },
+  ["/", "getMostPopularProducts"],
+  { revalidate: 60 * 60 * 24 },
+);
 
-function getNewestProducts() {
+const getNewestProducts = cache(() => {
   return db.product.findMany({
     where: { isAvailableForPurchase: true },
     orderBy: { createdAt: "desc" },
     take: 6,
   });
-}
+}, ["/", "getNewestProducts"]);
 
 type ProductGridSectionProps = {
   title: string;
   productsFetcher: () => Promise<Product[]>;
 };
 
-async function ProductGridSection({
+function ProductGridSection({
   title,
   productsFetcher,
 }: ProductGridSectionProps) {
@@ -43,12 +49,30 @@ async function ProductGridSection({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(await productsFetcher()).map((product) => (
-          <ProductCard key={product.id} {...product} />
-        ))}
+        <Suspense
+          fallback={
+            <>
+              <ProductCardSkeleton />
+              <ProductCardSkeleton />
+              <ProductCardSkeleton />
+            </>
+          }
+        >
+          <ProductSuspense productsFetcher={productsFetcher} />
+        </Suspense>
       </div>
     </div>
   );
+}
+
+async function ProductSuspense({
+  productsFetcher,
+}: {
+  productsFetcher: () => Promise<Product[]>;
+}) {
+  return (await productsFetcher()).map((product) => (
+    <ProductCard key={product.id} {...product} />
+  ));
 }
 
 export default function HomePage() {

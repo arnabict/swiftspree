@@ -4,10 +4,11 @@ import { db } from "@/db/db";
 import { z } from "zod";
 import fs from "fs/promises";
 import { notFound, redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 const fileSchema = z.instanceof(File, { message: "Required" });
 const imageSchema = fileSchema.refine(
-  (file) => file.size === 0 || file.type.startsWith("image/")
+  (file) => file.size === 0 || file.type.startsWith("image/"),
 );
 
 const addSchema = z.object({
@@ -40,7 +41,7 @@ export async function addProduct(prevState: unknown, formData: FormData) {
   const imagePath = `/products/${crypto.randomUUID()}-${data.image.name}`;
   await fs.writeFile(
     `public${imagePath}`,
-    Buffer.from(await data.image.arrayBuffer())
+    Buffer.from(await data.image.arrayBuffer()),
   );
 
   await db.product.create({
@@ -54,13 +55,15 @@ export async function addProduct(prevState: unknown, formData: FormData) {
     },
   });
 
+  revalidatePath("/");
+  revalidatePath("/products");
   redirect("/admin/products");
 }
 
 export async function updateProduct(
   id: string,
   prevState: unknown,
-  formData: FormData
+  formData: FormData,
 ) {
   const result = editSchema.safeParse(Object.fromEntries(formData.entries()));
 
@@ -86,7 +89,7 @@ export async function updateProduct(
     imagePath = `/products/${crypto.randomUUID()}-${data.image.name}`;
     await fs.writeFile(
       `public${imagePath}`,
-      Buffer.from(await data.image.arrayBuffer())
+      Buffer.from(await data.image.arrayBuffer()),
     );
   }
 
@@ -101,12 +104,14 @@ export async function updateProduct(
     },
   });
 
+  revalidatePath("/");
+  revalidatePath("/products");
   redirect("/admin/products");
 }
 
 export async function toggleProductActivity(
   id: string,
-  isAvailableForPurchase: boolean
+  isAvailableForPurchase: boolean,
 ) {
   await db.product.update({ where: { id }, data: { isAvailableForPurchase } });
 }
@@ -117,4 +122,7 @@ export async function deleteProduct(id: string) {
 
   await fs.unlink(product.filePath);
   await fs.unlink(`public${product.imagePath}`);
+
+  revalidatePath("/");
+  revalidatePath("/products");
 }
