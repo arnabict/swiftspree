@@ -65,7 +65,8 @@ export default async function SuccessPage({
 }
 
 async function createDownloadVerification(productId: string) {
-  return await db.downloadVerification.create({
+  const verification = await db.downloadVerification.create({
     data: { productId, expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24) },
   });
+  return verification.id;
 }
