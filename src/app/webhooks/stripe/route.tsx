@@ -2,7 +2,7 @@ import { db } from "@/db/db";
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import Stripe from "stripe";
-import OrderConfirmation from "@/lib/emails/OrderConfirmation";
+import PurchaseReceiptEmail from "@/email/PurchaseReceipt";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 const resend = new Resend(process.env.RESEND_API_KEY as string);
@@ -47,13 +47,17 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log(downloadVerification);
-
     const { error } = await resend.emails.send({
-      from: process.env.SENDER_EMAIL as string,
+      from: `Acme <${process.env.SENDER_EMAIL}>`,
       to: email,
       subject: "Order Confirmation",
-      react: <OrderConfirmation orderNumber={order.id} />,
+      react: (
+        <PurchaseReceiptEmail
+          order={order}
+          product={product}
+          downloadVerificationId={downloadVerification.id}
+        />
+      ),
     });
 
     if (error) {
