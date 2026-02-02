@@ -2,6 +2,7 @@ import { db } from "@/db/db";
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import Stripe from "stripe";
+import OrderConfirmation from "@/lib/emails/OrderConfirmation";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 const resend = new Resend(process.env.RESEND_API_KEY as string);
@@ -46,12 +47,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await resend.emails.send({
-      from: `Acme <${process.env.SENDER_EMAIL}>`,
+    console.log(downloadVerification);
+
+    const { error } = await resend.emails.send({
+      from: process.env.SENDER_EMAIL as string,
       to: email,
       subject: "Order Confirmation",
-      react: <h1>Hi</h1>,
+      react: <OrderConfirmation orderNumber={order.id} />,
     });
+
+    if (error) {
+      console.error("Email sending failed:", error);
+    }
   }
 
   return new NextResponse();
